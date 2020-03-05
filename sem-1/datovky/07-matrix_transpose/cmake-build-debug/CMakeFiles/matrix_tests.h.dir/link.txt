@@ -1,0 +1,1 @@
+/usr/bin/c++   -Wall -pedantic -g   CMakeFiles/matrix_tests.h.dir/matrix_transpose_test.cpp.o CMakeFiles/matrix_tests.h.dir/test_main.cpp.o  -o matrix_tests.h 

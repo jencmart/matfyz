@@ -1,0 +1,1 @@
+/usr/bin/c++   -Wall -pedantic -g   CMakeFiles/random.h.dir/hash_experiment.cpp.o  -o random.h 

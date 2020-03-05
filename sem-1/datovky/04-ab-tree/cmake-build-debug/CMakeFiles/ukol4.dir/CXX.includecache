@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jencmart/matfyz/sem-1/datovky/04-ab-tree/ab_tree.h
+limits
+-
+vector
+-
+iostream
+-
+
+/home/jencmart/matfyz/sem-1/datovky/04-ab-tree/ab_tree_test.cpp
+functional
+-
+cstdlib
+-
+vector
+-
+ab_tree.h
+/home/jencmart/matfyz/sem-1/datovky/04-ab-tree/ab_tree.h
+

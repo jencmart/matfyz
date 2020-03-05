@@ -1,0 +1,277 @@
+#!/usr/bin/perl
+# A simple script to show processors, cores and NUMA nodes
+# (c) 2010--2014 Martin Mares <mj@ucw.cz>
+
+use strict;
+use warnings;
+use List::Util;
+
+my $debug = 0;
+
+our $sys = "/sys/devices/system";
+our $spath;
+
+sub set_from_map($) {
+	my %set = ();
+	my $i = 0;
+	my $fw = 32;
+	for (reverse split /,/, $_[0]) {
+		for my $j (0..($fw-1)) {
+			if ((hex $_) & (1<<$j)) {
+				$set{$i * $fw + $j} = 1;
+			}
+		}
+	} continue {
+		$i++;
+	}
+	return \%set;
+}
+
+sub set_format($) {
+	return join(",", sort { $a <=> $b } keys %{$_[0]});
+}
+
+sub set_intersect($$) {
+	my ($a, $b) = @_;
+	return { map { $b->{$_} ? ($_ => 1) : () } keys %$a };
+}
+
+sub set_empty($) {
+	return !keys %{$_[0]};
+}
+
+sub set_contained_in($$) {
+	my ($small, $big) = @_;
+	for (keys %$small) {
+		$big->{$_} or return;
+	}
+	return 1;
+}
+
+sub sets_equal($$) {
+	return set_format($_[0]) eq set_format($_[1]);
+}
+
+sub rd($$) {
+	open X, $spath . "/" . $_[0] or return $_[1];
+	my $x = <X>;
+	chomp $x;
+	close X;
+	return $x;
+}
+
+# Scan CPUs and their caches
+my %cpu = ();
+my %cache = ();
+my %cpu_ids = ();
+for my $c (<$sys/cpu/cpu[0-9]*>) {
+	$spath = "$c/topology";
+	my ($id) = ($c =~ /cpu(\d+)$/) or die;
+	my $p = rd("physical_package_id", 0);
+	my $cr = rd("core_id", 0);
+	$cpu{$p}{$cr}{$id} = 1;
+	$cpu_ids{$id} = { phys_pkg => $p, core => $cr };
+
+	print "CPU: $p/$cr/$id\n" if $debug;
+	for my $x (<$c/cache/index[0-9]*>) {
+		$spath = $x;
+		my $l = rd("level", "?");
+		my $m = set_from_map(rd("shared_cpu_map", ""));
+		$m->{$id} = 1;
+		my $t = rd("type", "?");
+		$t =~ s/(.).*/$1/;
+		$l = "L$l$t";
+		my $name = set_format($m);
+		print "\t$l cpus=$name\n" if $debug;
+		$cache{$l}{$name} //= {
+			"cpus" => $m,
+			"level" => $l,
+			"line" => rd("coherency_line_size", "?"),
+			"size" => rd("size", "?"),
+			"ways" => rd("ways_of_associativity", "?"),
+		};
+	}
+}
+my @levels = sort keys %cache;
+
+# Scan NUMA nodes
+my %nodes = ();
+my %node_mem = ();
+for my $n (</$sys/node/node[0-9]*>) {
+	$spath = $n;
+	my ($id) = ($n =~ /node(\d+)$/) or die;
+	my $c = set_from_map(rd("cpumap", ""));
+	my $mem = "?";
+	if (open my $x, "$spath/meminfo") {
+		while (<$x>) {
+			/^Node \d+ MemTotal:\s*(.*)/ and $mem = $1;
+		}
+		close $x;
+	}
+	print "NODE $id: ", set_format($c), " ($mem)\n" if $debug;
+	$nodes{$id} = $c;
+	$node_mem{$id} = $mem;
+	for my $cpuid (keys %$c) { $cpu_ids{$cpuid}{'node'} = $id; }
+}
+
+# Identify internal subdivisions like Bulldozer modules
+my %modules = ();
+for my $l (@levels) {
+	CACHE: for my $c (values %{$cache{$l}}) {
+		my $cpus = $c->{cpus};
+		print "Cache $l ", set_format($cpus), "\n" if $debug;
+
+		my %pkg_ids = map { $cpu_ids{$_}{'phys_pkg'} => 1 } keys %{$cpus};
+		print "\tPackages: ", set_format(\%pkg_ids), "\n" if $debug;
+		if (keys %pkg_ids > 1) {
+			print "\tSpans multiple pkgs!\n" if $debug;
+			print STDERR "Warning: Cache spans multiple physical packages\n";
+			next CACHE;
+		}
+		my ($pkg_id) = keys %pkg_ids;
+
+		my $cpus_in_pkg = { map { %{$_} } values %{$cpu{$pkg_id}} };
+		print "\tCPUs in pkg: ", set_format($cpus_in_pkg), "\n" if $debug;
+		if (sets_equal($cpus_in_pkg, $cpus)) {
+			print "\tSpans whole package\n" if $debug;
+			next CACHE;
+		}
+
+		my $nodes_in_pkg = { map { $cpu_ids{$_}{'node'} => 1 } keys %$cpus_in_pkg };
+		my $cpus_in_subpkg = $cpus_in_pkg;
+		print "\tNodes in pkg: ", set_format($nodes_in_pkg), "\n" if $debug;
+		if (keys %$nodes_in_pkg > 1) {
+			# Check intersections of node with package
+			for my $node (keys %$nodes_in_pkg) {
+				$cpus_in_subpkg = set_intersect($cpus_in_pkg, $nodes{$node});
+				print "\tCPUs in sub-pkg for node $node: ", set_format($cpus_in_subpkg), "\n" if $debug;
+				next if set_empty(set_intersect($cpus, $cpus_in_subpkg));
+				if (!set_contained_in($cpus, $cpus_in_subpkg)) {
+					print "\tSpans multiple sub-pkgs!\n" if $debug;
+					print STDERR "Warning: Cache spans multiple physical sub-packages\n" if $debug;
+					next CACHE;
+				}
+				if (sets_equal($cpus_in_subpkg, $cpus)) {
+					print "\tSpans whole sub-pkg\n" if $debug;
+					next CACHE;
+				}
+				last;
+			}
+		}
+		print "\tCPUs in sub-pkg: ", set_format($cpus_in_subpkg), "\n" if $debug;
+
+		# Beware, core numbers are unique only within sub-package, but at this moment
+		# we have fixed the sub-package.
+		my $cores = { map { $cpu_ids{$_}{'core'} => 1 } keys %{$cpus} };
+		print "\tCores: ", set_format($cores), "\n" if $debug;
+		if (keys %$cores <= 1) {
+			print "\tSpans only one core\n" if $debug;
+			next CACHE;
+		}
+
+		# Check strange cases
+		my $cpus_in_cores = set_intersect($cpus_in_subpkg, { map { %{$cpu{$pkg_id}{$_}} } keys %$cores });
+		print "\tCPUs in cores: ", set_format($cpus_in_cores), "\n" if $debug;
+		if (!sets_equal($cpus, $cpus_in_cores)) {
+			print "\tSpans core boundaries!\n" if $debug;
+			print STDERR "Warning: Cache spans multiple partial cores\n";
+			next CACHE;
+		}
+
+		my $module_name = set_format($cpus);
+		print "\tGotcha! We have a module: $module_name\n" if $debug;
+		push @{$modules{$pkg_id}}, $cpus;
+		for my $id (keys %$cpus) {
+			$cpu_ids{$id}{'module'} //= $module_name;
+			if ($cpu_ids{$id}{'module'} ne $module_name) {
+				print STDERR "Warning: CPU $id belongs to different modules: ", $module_name, " and ", $cpu_ids{$id}{'module'}, "\n";
+			}
+		}
+	}
+}
+
+sub prcpu($$) {
+	my ($desc, $set) = @_;
+	if (scalar keys %$set == 0) {
+		return;
+	} elsif (scalar keys %$set == 1) {
+		printf "%2d", (keys %$set)[0];
+	} else {
+		print "  ";
+	}
+	printf("  %-20s", $desc);
+	my $fset = set_format($set);
+	for my $l (@levels) {
+		my $c;
+		if ($c = $cache{$l}{$fset}) {
+			printf " %-20s", $l . " (" . $c->{'size'} . "/" . $c->{'ways'} . "-way)";
+		} else {
+			printf " %-20s", "";
+		}
+	}
+	print "\n";
+}
+
+sub prcores($$) {
+	my ($pkg, $id_set) = @_;
+	for my $core (sort { $a <=> $b } keys %{$cpu{$pkg}}) {
+		my $cm = set_intersect($cpu{$pkg}{$core}, $id_set);
+		prcpu("    Core $core", $cm);
+		if (scalar keys %$cm > 1) {
+			my $t = 0;
+			for my $id (sort { $a <=> $b } keys %$cm) {
+				$t++;
+				prcpu("       Thread $t", {$id=>1});
+			}
+		}
+	}
+}
+
+sub prcpus($) {
+	my ($id_set) = @_;
+	for my $pkg (sort { $a <=> $b } keys %cpu) {
+		my $cpuids_in_pkg = {};
+		for my $core (keys %{$cpu{$pkg}}) {
+			for my $id (keys %{$cpu{$pkg}{$core}}) {
+				$cpuids_in_pkg->{$id} = 1;
+			}
+		}
+
+		my $pm = set_intersect($cpuids_in_pkg, $id_set);
+		my $name = "CPU $pkg";
+		if (set_format($pm) ne set_format($cpuids_in_pkg)) {
+			$name .= " (part)";
+		}
+		prcpu($name, $pm);
+		next if scalar keys %$pm <= 1;
+
+		if ($modules{$pkg}) {
+			my @m = @{$modules{$pkg}};
+			# Sort modules by their lowest CPU id
+			@m = map { $_->[0] } sort { $a->[1] <=> $b->[1] } map { [ $_, List::Util::min(keys %$_) ] } @m;
+			my $mi = 0;
+			for my $module (@m) {
+				my $mm = set_intersect($module, $pm);
+				next if set_empty($mm);
+				prcpu("  Module $mi", $mm);
+				prcores($pkg, $mm);
+				$mi++;
+			}
+		} else {
+			prcores($pkg, $id_set);
+		}
+	}
+}
+
+my $num_nodes = 0;
+for my $n (sort { $a <=> $b } keys %nodes) {
+	if (!set_empty($nodes{$n})) {
+		print "=== NODE $n (", $node_mem{$n}, ") ===\n";
+		$num_nodes++;
+		prcpus($nodes{$n});
+	}
+}
+
+if (!$num_nodes) {
+	prcpus(\%cpu_ids);
+}

@@ -1,0 +1,12 @@
+Jak pouzivat merici utilitku:
+
+(1) make clean -- smaze pracovni soubory z pripadnych predchozich behu.
+
+(2) make -- tim vyzkousite, ze testovaci program jde zkompilovat.
+
+(3) ./graph.pl -- ridici skript, ktery testovaci program kompiluje
+s ruznymi parametry, spousti ho a loguje vysledky v adresari "out"
+(nebo libovolnem jinem, ktery mu zadate). Take vytvari soubor
+plot.gp pro GnuPlot. Na zacatku skriptu jsou nastavitelne parametry.
+
+(4) gnuplot plot.gp -- vyrobi a-*.png s grafy.

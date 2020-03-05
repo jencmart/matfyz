@@ -1,0 +1,36 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jencmart/matfyz/sem-1/datovky/03-splay-tree-analysis/random.h
+cstdint
+-
+
+/home/jencmart/matfyz/sem-1/datovky/03-splay-tree-analysis/splay_experiment.cpp
+algorithm
+-
+functional
+-
+string
+-
+utility
+-
+vector
+-
+iostream
+-
+cmath
+-
+splay_operation.h
+/home/jencmart/matfyz/sem-1/datovky/03-splay-tree-analysis/splay_operation.h
+random.h
+/home/jencmart/matfyz/sem-1/datovky/03-splay-tree-analysis/random.h
+
+/home/jencmart/matfyz/sem-1/datovky/03-splay-tree-analysis/splay_operation.h
+cmath
+-
+

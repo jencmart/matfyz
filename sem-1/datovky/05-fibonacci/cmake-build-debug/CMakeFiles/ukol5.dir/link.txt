@@ -1,0 +1,1 @@
+/usr/bin/c++   -Wall -pedantic -g   CMakeFiles/ukol5.dir/fibonacci_test.cpp.o CMakeFiles/ukol5.dir/test_main.cpp.o CMakeFiles/ukol5.dir/tmp.cpp.o  -o ukol5 

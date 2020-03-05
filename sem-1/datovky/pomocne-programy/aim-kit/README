@@ -1,0 +1,30 @@
+This is a problem solution kit for the labs exercises of the MFF CUNI
+course on "Algoritmy a jejich implementace".
+
+The test images are not part of the repository, download them separately at
+	http://kam.mff.cuni.cz/~aim/aim-testfiles.tar.gz
+
+The most interesting file is exercise.c, which is to provide the exercise()
+routine that performs the appropriate image transformation.  When submitting
+your solution, submit ONLY THE FILE exercise.c (with exercise() function,
+without any main()) using aim-submit. To test, run aim-test TASK exercise.c
+inside aim-kit directory with your exercise.c.
+
+Run `make` to build the binary executable: this will create two files:
+
+	aim-opt - optimized version suitable for production use
+	aim-dbg - unoptimized version suitable for debugging
+
+Run the binary as:
+	./aim-opt 1 test1024.pbm output.pbm
+	display output.pbm
+
+If you want to pass custom compiler flags, run it e.g. as:
+	make MYCFLAGS="-DLALALA ..."
+
+To get annotated assembly source, run `make exercise.s`.
+
+
+In order to benchmark your code the same way we will, run `make benchmark`.
+This will internally run your subroutine multiple times in row on the same
+image, however you must not take advantage of this in your code.

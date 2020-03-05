@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jencmart/matfyz/sem-1/datovky/05-fibonacci/fibonacci.h
+vector
+-
+iostream
+-
+
+/home/jencmart/matfyz/sem-1/datovky/05-fibonacci/fibonacci_test.cpp
+stdio.h
+-
+utility
+-
+functional
+-
+string
+-
+limits
+-
+algorithm
+-
+fibonacci.h
+/home/jencmart/matfyz/sem-1/datovky/05-fibonacci/fibonacci.h
+

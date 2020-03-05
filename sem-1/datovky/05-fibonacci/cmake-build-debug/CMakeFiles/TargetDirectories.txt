@@ -1,0 +1,3 @@
+/home/jencmart/matfyz/sem-1/datovky/05-fibonacci/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/jencmart/matfyz/sem-1/datovky/05-fibonacci/cmake-build-debug/CMakeFiles/ukol5.dir
+/home/jencmart/matfyz/sem-1/datovky/05-fibonacci/cmake-build-debug/CMakeFiles/edit_cache.dir

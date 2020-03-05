@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jencmart/matfyz/sem-1/datovky/10-hash_experiment/hash_experiment.cpp
+vector
+-
+functional
+-
+algorithm
+-
+utility
+-
+stdexcept
+-
+stdio.h
+-
+stdint.h
+-
+math.h
+-
+random.h
+/home/jencmart/matfyz/sem-1/datovky/10-hash_experiment/random.h
+
+/home/jencmart/matfyz/sem-1/datovky/10-hash_experiment/random.h
+cstdint
+-
+

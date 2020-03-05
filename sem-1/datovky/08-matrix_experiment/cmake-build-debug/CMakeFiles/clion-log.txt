@@ -1,0 +1,8 @@
+/opt/clion/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/jencmart/matfyz/sem-1/datovky/08-matrix_experiment
+-- Performing Test flag_supported
+-- Performing Test flag_supported - Success
+-- Performing Test flag_supported
+-- Performing Test flag_supported - Success
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/jencmart/matfyz/sem-1/datovky/08-matrix_experiment/cmake-build-debug

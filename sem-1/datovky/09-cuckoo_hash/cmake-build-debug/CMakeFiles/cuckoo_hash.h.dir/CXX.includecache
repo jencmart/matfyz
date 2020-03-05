@@ -1,0 +1,36 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jencmart/matfyz/sem-1/datovky/09-cuckoo_hash/cuckoo_hash.h
+string
+-
+vector
+-
+cstdint
+-
+iostream
+-
+random.h
+/home/jencmart/matfyz/sem-1/datovky/09-cuckoo_hash/random.h
+cmath
+-
+
+/home/jencmart/matfyz/sem-1/datovky/09-cuckoo_hash/cuckoo_hash_test.cpp
+functional
+-
+cstdlib
+-
+vector
+-
+cuckoo_hash.h
+/home/jencmart/matfyz/sem-1/datovky/09-cuckoo_hash/cuckoo_hash.h
+
+/home/jencmart/matfyz/sem-1/datovky/09-cuckoo_hash/random.h
+cstdint
+-
+

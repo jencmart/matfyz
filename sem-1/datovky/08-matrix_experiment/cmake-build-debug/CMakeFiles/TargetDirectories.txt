@@ -1,0 +1,3 @@
+/home/jencmart/matfyz/sem-1/datovky/08-matrix_experiment/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/jencmart/matfyz/sem-1/datovky/08-matrix_experiment/cmake-build-debug/CMakeFiles/matrix_tests.h.dir
+/home/jencmart/matfyz/sem-1/datovky/08-matrix_experiment/cmake-build-debug/CMakeFiles/edit_cache.dir

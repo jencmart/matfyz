@@ -1,0 +1,1 @@
+/usr/bin/c++   -Wall -pedantic -g   CMakeFiles/fibonacci_experiment_6.dir/fibonacci_experiment.cpp.o  -o fibonacci_experiment_6 

@@ -1,0 +1,40 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jencmart/matfyz/sem-1/datovky/06-fibonacci_experiment/fibonacci.h
+vector
+-
+iostream
+-
+
+/home/jencmart/matfyz/sem-1/datovky/06-fibonacci_experiment/fibonacci_experiment.cpp
+algorithm
+-
+functional
+-
+string
+-
+utility
+-
+vector
+-
+iostream
+-
+cmath
+-
+tuple
+-
+fibonacci.h
+/home/jencmart/matfyz/sem-1/datovky/06-fibonacci_experiment/fibonacci.h
+random.h
+/home/jencmart/matfyz/sem-1/datovky/06-fibonacci_experiment/random.h
+
+/home/jencmart/matfyz/sem-1/datovky/06-fibonacci_experiment/random.h
+cstdint
+-
+

@@ -1,0 +1,34 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jencmart/matfyz/sem-1/datovky/07-matrix_transpose/matrix_tests.h
+string
+-
+vector
+-
+iostream
+-
+algorithm
+-
+matrix_transpose.h
+/home/jencmart/matfyz/sem-1/datovky/07-matrix_transpose/matrix_transpose.h
+
+/home/jencmart/matfyz/sem-1/datovky/07-matrix_transpose/matrix_transpose.h
+
+/home/jencmart/matfyz/sem-1/datovky/07-matrix_transpose/matrix_transpose_test.cpp
+functional
+-
+vector
+-
+iostream
+-
+iomanip
+-
+matrix_tests.h
+/home/jencmart/matfyz/sem-1/datovky/07-matrix_transpose/matrix_tests.h
+
