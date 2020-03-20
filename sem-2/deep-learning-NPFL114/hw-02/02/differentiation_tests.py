@@ -85,7 +85,7 @@ class DifferTest:
 
         for i in range(t):
             cosh = np.cosh(tf.gather_nd(vector_before_tanh, [0, i]))  # todo  I think nonzero only on diagonal
-            A[i, i] = 1 / cosh ** 2
+            A[i, i] = 1 / ( cosh ** 2 )
         return (tf.constant(A))
 
 
@@ -106,7 +106,7 @@ class DifferTest:
             for j in range(0, N):
                 A[i, i * N + j] = 1.0
 
-        print(A)
+        # print(A)
         return tf.constant(A)
 
     def differentiate_xW_wrt_x(self, W):
@@ -157,27 +157,150 @@ class DifferTest:
         gradients = tape.gradient(loss, variables)
         return gradients
 
+
+
+
     def run(self, batch_x, batch_y):
         auto_gradient = self.differentiate_tape(batch_y, batch_x)
 
         probabilities, hidden_layer_before_tanh, hidden_layer = self.predict_for_train(batch_x)
 
+        ############### BY  B2 ###############################
+
+        t_b2 = self._W2.shape[1]
+        manual_gradient_by_b2 = tf.ones([0, t_b2], dtype=tf.float32)
+        manual_gradient_by_b2 = probabilities - y
+
+        # for B in range(batch_x.shape[0]):
+        #
+        #     y_row = tf.reshape(tf.gather_nd(batch_y, [B]), [1, -1])
+        #
+        #     probabilities_row = tf.reshape(tf.gather_nd(probabilities, [B]), [1, -1])
+        #
+        #     manual_xent_gradient = self.differentiate_xent_wrt_probabilites(y_row, probabilities_row)
+        #     manual_Softmax_gradient = self.differentiate_softmax_wrt_logit(probabilities_row)
+        #
+        #     manual_gradient_tmp = manual_xent_gradient @ manual_Softmax_gradient
+        #
+        #     ## todo -- new and simple way
+        #     print(manual_gradient_tmp.shape)
+        #     manual_gradient_by_b2 = tf.concat([manual_gradient_by_b2, manual_gradient_tmp], 0)
+
+        # manual_gradient_by_b2 = manual_gradient_by_b2[1:, :]
+        manual_gradient_by_b2 = tf.math.reduce_mean(manual_gradient_by_b2, axis=0)
+
+        # manual_gradient_by_b2 = tf.cast(manual_gradient_by_b2, tf.float32)
+
+        ######################################################################################################
+
+        ############### BY  W2 ###############################
+
+        N_W2 = self._W2.shape[0]
+        t_W2 = self._W2.shape[1]
+        manual_gradient_by_W2 = tf.ones([0, N_W2, t_W2], dtype=tf.float32)
+
+        # todo - remove the for cycle
+        for B in range(batch_x.shape[0]):
+            y_row = tf.reshape(tf.gather_nd(batch_y, [B]), [1, -1])
+
+            probabilities_row = tf.reshape(tf.gather_nd(probabilities, [B]), [1, -1])
+            hidden_layer_row = tf.reshape(tf.gather_nd(hidden_layer, [B]), [1, -1])
+
+            # manual_xent_gradient = self.differentiate_xent_wrt_probabilites(y_row, probabilities_row)
+            # manual_Softmax_gradient = self.differentiate_softmax_wrt_logit(probabilities_row)
+            # manual_w2_gradient = self.differentiate_xW_by_W(hidden_layer, self._W2)
+            #
+            # manual_gradient_tmp = manual_xent_gradient @ manual_Softmax_gradient @ manual_w2_gradient  # @ maunal_tanh_gradient @ manual_w1_gradient
+
+            # todo -- new way
+            # tiling [a b c d] by [2] produces [a b c d a b c d].
+            t = self._W2.shape[1]
+
+            xent_soft = (probabilities_row - y_row)
+            xent_soft = tf.tile(xent_soft, [1, hidden_layer_row.shape[1]])  # do sloupecku nakopirujeme xent_soft
+            xent_soft = tf.reshape(xent_soft, [hidden_layer_row.shape[1], -1])
+
+
+            ## todo todo --- even simpler way ? -- yeeey
+            manual_gradient_tmp = tf.transpose(hidden_layer_row) * xent_soft
+            manual_gradient_tmp = tf.reshape(manual_gradient_tmp, [1, N_W2, t_W2])  # just add the missing dim
+            manual_gradient_by_W2 = tf.concat([manual_gradient_by_W2, manual_gradient_tmp], 0)
+
+        # manual_gradient_by_W2 = manual_gradient_by_W2[1:, :]
+        manual_gradient_by_W2 = tf.math.reduce_mean(manual_gradient_by_W2, axis=0)
+
+        # manual_gradient = tf.math.scalar_mul(1/batch_x.shape[0], manual_gradient)
+        # manual_gradient_by_W2 = tf.reshape(manual_gradient_by_W2, [t_W2, N_W2])  # because we want to go column-wise
+        # manual_gradient_by_W2 = tf.transpose(manual_gradient_by_W2)  # because we want to go column-wise
+        # manual_gradient_by_W2 = tf.cast(manual_gradient_by_W2, tf.float32)
+
+        ######################################################################################################
+
+
+        ############### BY  B1 ###############################
+
+        t_b1 = self._W1.shape[1]
+        manual_gradient_by_b1 = tf.ones([1, t_b1], dtype=tf.float32)
+
+        for B in range(batch_x.shape[0]):
+            y_row = tf.reshape(tf.gather_nd(batch_y, [B]), [1, -1])
+
+            probabilities_row = tf.reshape(tf.gather_nd(probabilities, [B]), [1, -1])
+            hidden_layer_before_tanh_row = tf.reshape(tf.gather_nd(hidden_layer_before_tanh, [B]), [1, -1])
+
+            # manual_xent_gradient = self.differentiate_xent_wrt_probabilites(y_row, probabilities_row)
+            # manual_Softmax_gradient = self.differentiate_softmax_wrt_logit(probabilities_row)
+            xent_softmax = probabilities_row - y_row
+
+            # todo this is just a transposition of W2
+            manual_w2_gradient = self.differentiate_xW_wrt_x(self._W2)
+            manual_w2_gradient = tf.transpose(self._W2)
+
+            # todo this is a diagonal matrix ..... we will use outer product instead ... done
+            maunal_tanh_gradient = self.differentiate_vect_tanh_wrt_vect(vector_before_tanh=hidden_layer_before_tanh_row)
+            # hidden_layer_before_tanh_row  = 1 / cosh(x) ** 2
+            maunal_tanh_gradient = tf.math.reciprocal(tf.math.square(tf.cosh(hidden_layer_before_tanh_row)))
+            #maunal_tanh_gradient = tf.reshape(maunal_tanh_gradient, [-1])
+            #maunal_tanh_gradient = tf.linalg.tensor_diag(maunal_tanh_gradient)
+                # this is the result
+            manual_gradient_tmp = tf.multiply( (xent_softmax @ manual_w2_gradient) , maunal_tanh_gradient)
+
+            manual_gradient_by_b1 = tf.concat([manual_gradient_by_b1, manual_gradient_tmp], 0)
+
+        manual_gradient_by_b1 = manual_gradient_by_b1[1:, :]
+        manual_gradient_by_b1 = tf.math.reduce_mean(manual_gradient_by_b1, axis=0)
+
+        # manual_gradient_by_b1 = tf.cast(manual_gradient_by_b1, tf.float32)
+
+
+
+
+
+        ##### BY W1 ########## -- todo last one
         N_W1 = self._W1.shape[0]
         t_W1 = self._W1.shape[1]
-        manual_gradient_by_W1 = tf.ones([1, N_W1*t_W1], dtype=tf.float64)
+        manual_gradient_by_W1 = tf.ones([1, N_W1, t_W1], dtype=tf.float32)
 
         for B in range(batch_x.shape[0]):
             y_row = tf.reshape(tf.gather_nd(batch_y, [B]), [1, -1])
             x_row = tf.reshape(tf.gather_nd(batch_x, [B]), [1, -1])
 
             probabilities_row = tf.reshape(tf.gather_nd(probabilities, [B]), [1, -1])
+            hidden_layer_before_tanh_row = tf.reshape(tf.gather_nd(hidden_layer_before_tanh, [B]), [1, -1])
 
-            manual_xent_gradient = self.differentiate_xent_wrt_probabilites(y_row, probabilities_row)
-            manual_Softmax_gradient = self.differentiate_softmax_wrt_logit(probabilities_row)
-            manual_w2_gradient = self.differentiate_xW_wrt_x(self._W2)
-            maunal_tanh_gradient = self.differentiate_vect_tanh_wrt_vect(vector_before_tanh=hidden_layer_before_tanh)
+            xent_softmax = probabilities_row - y_row
+            manual_w2_gradient = tf.transpose(self._W2)
+            maunal_tanh_gradient = tf.math.reciprocal(tf.math.square(tf.cosh(hidden_layer_before_tanh_row)))
+
+            # todo -- we must solve this -- do sloupecku dame x_row ... se the w1 example
             manual_w1_gradient = self.differentiate_xW_by_W(x_row, self._W1)
-            manual_gradient_tmp = manual_xent_gradient @ manual_Softmax_gradient @ manual_w2_gradient @ maunal_tanh_gradient @ manual_w1_gradient
+
+
+            xent_soft_tanh = tf.multiply((xent_softmax @ manual_w2_gradient), maunal_tanh_gradient)
+            manual_gradient_tmp = tf.transpose(x_row) * xent_soft_tanh
+
+            manual_gradient_tmp = tf.reshape(manual_gradient_tmp, [1, N_W1, t_W1])  # just add the missing dim
+
 
             manual_gradient_by_W1 = tf.concat([manual_gradient_by_W1, manual_gradient_tmp], 0)
 
@@ -185,129 +308,23 @@ class DifferTest:
         manual_gradient_by_W1 = tf.math.reduce_mean(manual_gradient_by_W1, axis=0)
 
         # manual_gradient = tf.math.scalar_mul(1/batch_x.shape[0], manual_gradient)
-        manual_gradient_by_W1 = tf.reshape(manual_gradient_by_W1, [t_W1, N_W1])  # because we want to go column-wise
-        manual_gradient_by_W1 = tf.transpose(manual_gradient_by_W1)  # because we want to go column-wise
-        manual_gradient_by_W1 = tf.cast(manual_gradient_by_W1, tf.float32)
-
-
-
-        ############### BY  W2 ###############################
-
-        N_W2 = self._W2.shape[0]
-        t_W2 = self._W2.shape[1]
-        manual_gradient_by_W2 = tf.ones([1, N_W2, t_W2], dtype=tf.float32)
-
-
-        for B in range(batch_x.shape[0]):
-
-            y_row = tf.reshape(tf.gather_nd(batch_y, [B]), [1, -1])
-
-            probabilities_row = tf.reshape(tf.gather_nd(probabilities, [B]), [1, -1])
-
-            hidden_layer_row = tf.reshape(tf.gather_nd(hidden_layer, [B]), [1, -1])
-
-            manual_xent_gradient = self.differentiate_xent_wrt_probabilites(y_row, probabilities_row)
-            manual_Softmax_gradient = self.differentiate_softmax_wrt_logit(probabilities_row)
-            manual_w2_gradient = self.differentiate_xW_by_W(hidden_layer, self._W2)
-
-            manual_gradient_tmp = manual_xent_gradient @ manual_Softmax_gradient @ manual_w2_gradient  # @ maunal_tanh_gradient @ manual_w1_gradient
-
-            # todo -- new way
-            # tiling [a b c d] by [2] produces [a b c d a b c d].
-            t = self._W2.shape[1]
-
-            print(hidden_layer_row.shape)
-            w2_by_w2_matrix = tf.tile(hidden_layer_row, [1, t])
-            w2_by_w2_matrix = tf.reshape(w2_by_w2_matrix , [t, -1] )
-            w2_by_w2_matrix = tf.transpose(w2_by_w2_matrix)
-
-            xent_soft = ( probabilities_row - y_row )
-            xent_soft = tf.tile(xent_soft, [1, hidden_layer_row.shape[1]])
-            xent_soft = tf.reshape(xent_soft, [hidden_layer_row.shape[1], -1])
-
-            # print(xent_soft)
-            manual_gradient_tmp = tf.multiply(xent_soft, w2_by_w2_matrix)
-            manual_gradient_tmp = tf.reshape(manual_gradient_tmp, [1, N_W2, t_W2])
-            manual_gradient_by_W2 = tf.concat([manual_gradient_by_W2, manual_gradient_tmp], 0)
-
-        manual_gradient_by_W2 = manual_gradient_by_W2[1:, :]
-        manual_gradient_by_W2 = tf.math.reduce_mean(manual_gradient_by_W2, axis=0)
-
-        # manual_gradient = tf.math.scalar_mul(1/batch_x.shape[0], manual_gradient)
-        #manual_gradient_by_W2 = tf.reshape(manual_gradient_by_W2, [t_W2, N_W2])  # because we want to go column-wise
-        #manual_gradient_by_W2 = tf.transpose(manual_gradient_by_W2)  # because we want to go column-wise
-        # manual_gradient_by_W2 = tf.cast(manual_gradient_by_W2, tf.float32)
+       # manual_gradient_by_W1 = tf.reshape(manual_gradient_by_W1, [t_W1, N_W1])  # because we want to go column-wise
+       # manual_gradient_by_W1 = tf.transpose(manual_gradient_by_W1)  # because we want to go column-wise
+       # manual_gradient_by_W1 = tf.cast(manual_gradient_by_W1, tf.float32)
 
         ######################################################################################################
 
 
 
-        ############### BY  B2 ###############################
-
-        t_b2 = self._W2.shape[1]
-        manual_gradient_by_b2 = tf.ones([1, t_b2], dtype=tf.float32)
-
-
-        for B in range(batch_x.shape[0]):
-
-            y_row = tf.reshape(tf.gather_nd(batch_y, [B]), [1, -1])
-
-            probabilities_row = tf.reshape(tf.gather_nd(probabilities, [B]), [1, -1])
-
-            manual_xent_gradient = self.differentiate_xent_wrt_probabilites(y_row, probabilities_row)
-            manual_Softmax_gradient = self.differentiate_softmax_wrt_logit(probabilities_row)
-
-            manual_gradient_tmp = manual_xent_gradient @ manual_Softmax_gradient
-
-            ## todo -- new and simple way
-            manual_gradient_tmp = probabilities_row - y_row
-
-            manual_gradient_by_b2 = tf.concat([manual_gradient_by_b2, manual_gradient_tmp], 0)
-
-        manual_gradient_by_b2 = manual_gradient_by_b2[1:, :]
-        manual_gradient_by_b2 = tf.math.reduce_mean(manual_gradient_by_b2, axis=0)
-
-        # manual_gradient_by_b2 = tf.cast(manual_gradient_by_b2, tf.float32)
-
-        ######################################################################################################
-
-        ############### BY  B1 ###############################
-
-        t_b1 = self._W1.shape[1]
-        manual_gradient_by_b1 = tf.ones([1, t_b1], dtype=tf.float64)
-
-        for B in range(batch_x.shape[0]):
-            y_row = tf.reshape(tf.gather_nd(batch_y, [B]), [1, -1])
-
-            probabilities_row = tf.reshape(tf.gather_nd(probabilities, [B]), [1, -1])
-
-
-            manual_xent_gradient = self.differentiate_xent_wrt_probabilites(y_row, probabilities_row)
-            manual_Softmax_gradient = self.differentiate_softmax_wrt_logit(probabilities_row)
-            manual_w2_gradient = self.differentiate_xW_wrt_x(self._W2)
-            maunal_tanh_gradient = self.differentiate_vect_tanh_wrt_vect(vector_before_tanh=hidden_layer_before_tanh)
-            manual_gradient_tmp = manual_xent_gradient @ manual_Softmax_gradient @ manual_w2_gradient @ maunal_tanh_gradient
-
-            manual_gradient_by_b1 = tf.concat([manual_gradient_by_b1, manual_gradient_tmp], 0)
-
-        manual_gradient_by_b1 = manual_gradient_by_b1[1:, :]
-        manual_gradient_by_b1 = tf.math.reduce_mean(manual_gradient_by_b1, axis=0)
-
-        manual_gradient_by_b1 = tf.cast(manual_gradient_by_b1, tf.float32)
-
-        ######################################################################################################
-
-
-
-        print(auto_gradient[1])
+        print(auto_gradient[0])
 
         print("###########")
 
-        print(manual_gradient_by_W2)
+        print(manual_gradient_by_W1)
 
         print("###########")
         print("###########")
-        print(tf.math.subtract(manual_gradient_by_W2, auto_gradient[1]))
+        print(tf.math.subtract(manual_gradient_by_W1, auto_gradient[0]))
 
         return manual_gradient_by_W1, manual_gradient_by_W2, manual_gradient_by_b1, manual_gradient_by_b2
 
